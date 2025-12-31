@@ -1,0 +1,5 @@
+{
+  "name": "ScholarSync: Systematic Review Assistant",
+  "description": "An AI-powered academic assistant that analyzes research articles against a specific research topic to generate systematic literature reviews, summary tables, and synthesis matrices.",
+  "requestFramePermissions": []
+}

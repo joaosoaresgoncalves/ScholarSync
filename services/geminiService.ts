@@ -113,26 +113,50 @@ export const analyzeArticles = async (
     required: ["individualAnalyses", "summaryTable", "synthesisMatrix"],
   };
 
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-pro-preview", // Best for complex reasoning and large context
-      contents: {
-        parts: parts,
-      },
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: responseSchema,
-        thinkingConfig: { thinkingBudget: 4096 } // Allow detailed thinking for analysis
-      },
-    });
+  // Helper for exponential backoff
+  const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-    if (!response.text) {
-      throw new Error("No response generated");
+  let attempt = 0;
+  const maxRetries = 3;
+
+  while (true) {
+    try {
+      // Switched to gemini-3-flash-preview for better rate limits while maintaining good reasoning capabilities
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview", 
+        contents: {
+          parts: parts,
+        },
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: responseSchema,
+          thinkingConfig: { thinkingBudget: 2048 } // Optimized budget for flash
+        },
+      });
+
+      if (!response.text) {
+        throw new Error("No response generated");
+      }
+
+      return JSON.parse(response.text) as AnalysisResponse;
+
+    } catch (error: any) {
+      // Check for quota exhaustion (429) or service unavailable (503)
+      // The error object might differ depending on the exact SDK version/response, so we check multiple properties
+      const isQuotaError = error.message?.includes('429') || error.status === 429 || error.code === 429;
+      const isServerOverload = error.message?.includes('503') || error.status === 503;
+
+      if ((isQuotaError || isServerOverload) && attempt < maxRetries) {
+        attempt++;
+        // Exponential backoff: 2s, 4s, 8s
+        const delayMs = 2000 * Math.pow(2, attempt - 1); 
+        console.warn(`Attempt ${attempt} failed with ${isQuotaError ? 'quota' : 'server'} error. Retrying in ${delayMs}ms...`);
+        await wait(delayMs);
+        continue;
+      }
+      
+      console.error("Gemini Analysis Error:", error);
+      throw error;
     }
-
-    return JSON.parse(response.text) as AnalysisResponse;
-  } catch (error) {
-    console.error("Gemini Analysis Error:", error);
-    throw error;
   }
 };

@@ -27,6 +27,60 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({ data, topic, onReset
     }
   };
 
+  const handleExport = () => {
+    const date = new Date().toLocaleDateString();
+    let content = `# Systematic Literature Review Report\n\n`;
+    content += `**Research Topic:** ${topic}\n`;
+    content += `**Date:** ${date}\n\n`;
+    content += `---\n\n`;
+
+    // Summary Table
+    content += `## 1. Summary Overview\n\n`;
+    content += `| Article | Rating | Core Conclusion | Utility |\n`;
+    content += `| :--- | :--- | :--- | :--- |\n`;
+    data.summaryTable.forEach(row => {
+      // Sanitize content for markdown table
+      const article = row.article.replace(/\|/g, '\\|').replace(/\n/g, ' ');
+      const conclusion = row.coreConclusion.replace(/\|/g, '\\|').replace(/\n/g, ' ');
+      content += `| ${article} | ${row.rating} | ${conclusion} | ${row.utility} |\n`;
+    });
+    content += `\n---\n\n`;
+
+    // Synthesis Matrix
+    content += `## 2. Synthesis Matrix\n\n`;
+    content += `### Common Themes\n`;
+    data.synthesisMatrix.commonThemes.forEach(item => content += `- ${item}\n`);
+    content += `\n### Divergent Results\n`;
+    data.synthesisMatrix.divergentResults.forEach(item => content += `- ${item}\n`);
+    content += `\n### Research Gaps\n`;
+    data.synthesisMatrix.researchGaps.forEach(item => content += `- ${item}\n`);
+    content += `\n---\n\n`;
+
+    // Individual Analysis
+    content += `## 3. Deep Individual Analysis\n\n`;
+    data.individualAnalyses.forEach(item => {
+      content += `### ${item.title}\n`;
+      content += `**Authors:** ${item.authors} | **Year:** ${item.year}\n`;
+      content += `**Relevance:** ${item.relevanceRating}/100\n\n`;
+      
+      content += `**Methodological Summary:**\n${item.methodologicalSummary}\n\n`;
+      content += `**Key Contributions:**\n${item.keyContributions}\n\n`;
+      content += `**Rating Justification:**\n${item.ratingJustification}\n\n`;
+      content += `**Thesis Integration:**\n${item.thesisIntegration}\n\n`;
+      content += `---\n\n`;
+    });
+
+    const blob = new Blob([content], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ScholarSync_Report_${new Date().toISOString().slice(0,10)}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="w-full max-w-6xl mx-auto p-4 md:p-8 animate-fade-in">
       {/* Header */}
@@ -44,7 +98,7 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({ data, topic, onReset
             </button>
             <button 
                 className="flex items-center gap-2 px-4 py-2 bg-academic-800 text-white rounded-lg hover:bg-academic-900 transition-colors shadow-sm"
-                onClick={() => alert("Export feature would generate a Markdown/PDF file here.")}
+                onClick={handleExport}
             >
                 <Download size={16} />
                 Export Report

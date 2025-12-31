@@ -137,7 +137,7 @@ const App: React.FC = () => {
         </div>
         
         <p className="text-center text-academic-400 text-xs mt-8">
-            Powered by Google Gemini 3 Pro • Designed for Academic Integrity
+            Powered by Google Gemini 3 Flash • Designed for Academic Integrity
         </p>
       </div>
     </div>
